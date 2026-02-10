@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: meeting-scheduler
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus

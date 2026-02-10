@@ -1,0 +1,19 @@
+services:
+  grafana:
+    image: 'grafana/otel-lgtm:latest'
+    ports:
+      - '3000:3000'
+      - '4317:4317'
+      - '4318:4318'
+  postgres:
+    image: 'postgres:17'
+    environment:
+      - 'POSTGRES_DB=scheduler'
+      - 'POSTGRES_PASSWORD=S3cret!'
+      - 'POSTGRES_USER=dev'
+    ports:
+      - '5432'
+  redis:
+    image: 'redis:latest'
+    ports:
+      - '6379'
