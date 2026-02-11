@@ -4,9 +4,6 @@ spring:
 
   jpa:
     open-in-view: off
-    hibernate:
-      ddl-auto: none
-    show-sql: true
 
   datasource:
     url: jdbc:postgresql://localhost:5432/scheduler
