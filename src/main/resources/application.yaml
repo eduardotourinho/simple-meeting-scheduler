@@ -2,8 +2,34 @@ spring:
   application:
     name: meeting-scheduler
 
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+  datasource:
+    url: ${DB_DATA_SOURCE:}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
 management:
   endpoints:
     web:
       exposure:
         include: health,prometheus
+  tracing:
+    sampling:
+      probability: 0.1

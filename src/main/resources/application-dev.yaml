@@ -4,8 +4,22 @@ spring:
 
   jpa:
     open-in-view: off
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/scheduler
+    username: dev
+    password: S3cret!
+    driver-class-name: org.postgresql.Driver
+
 
 management:
+  tracing:
+    sampling:
+      probability: 1.0
+
   otlp:
     metrics:
       export:
@@ -16,6 +30,7 @@ management:
       export:
         otlp:
           endpoint: http;//localhost:4318/v1/traces
+        include-unsampled: true
 
     logging:
       export:
