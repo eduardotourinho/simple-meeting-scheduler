@@ -26,7 +26,9 @@ repositories {
 
 ext {
 	hibernateVersion = '7.2.4.Final'
+	hibernateValidatorVersion = '9.1.0.Final'
 	otlpLogbackAppenderVersion = '2.21.0-alpha'
+	springdocOpenApiVersion = '2.8.15'
 }
 
 dependencies {
@@ -40,7 +42,9 @@ dependencies {
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	implementation "org.hibernate.orm:hibernate-core:$hibernateVersion"
+	implementation "org.hibernate.validator:hibernate-validator:$hibernateValidatorVersion"
 	implementation "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:$otlpLogbackAppenderVersion"
+	implementation "org.springdoc:springdoc-openapi-starter-webmvc-scalar:$springdocOpenApiVersion"
 
     compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'

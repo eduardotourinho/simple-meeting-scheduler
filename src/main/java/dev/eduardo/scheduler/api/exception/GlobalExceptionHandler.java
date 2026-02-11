@@ -1,5 +1,6 @@
 package dev.eduardo.scheduler.api.exception;
 
+import dev.eduardo.scheduler.service.exception.DuplicateEmailException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +36,31 @@ public class GlobalExceptionHandler {
                 .build();
 
         log.warn("Validation error: {}", errors);
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
+
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateEmail(DuplicateEmailException ex) {
+        var errorResponse = ErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.UNPROCESSABLE_CONTENT.value())
+                .error("Unprocessable Content")
+                .message("An unexpected error occurred")
+                .build();
+
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(errorResponse);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        var errorResponse = ErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message("An unexpected error occurred")
+                .build();
+
+        log.warn("Bad request occurred", ex);
         return ResponseEntity.badRequest().body(errorResponse);
     }
 
