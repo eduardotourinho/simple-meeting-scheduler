@@ -1,6 +1,9 @@
 package dev.eduardo.scheduler.api.exception;
 
 import dev.eduardo.scheduler.service.exception.DuplicateEmailException;
+import dev.eduardo.scheduler.service.exception.TimeSlotNotFoundException;
+import dev.eduardo.scheduler.service.exception.TimeSlotOverlapException;
+import dev.eduardo.scheduler.service.exception.UserNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,16 +54,55 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(errorResponse);
     }
 
+    @ExceptionHandler(TimeSlotNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTimeSlotNotFound(TimeSlotNotFoundException ex) {
+        var errorResponse = ErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .error("Not Found")
+                .message(ex.getMessage())
+                .build();
+
+        log.warn("Time slot not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(TimeSlotOverlapException.class)
+    public ResponseEntity<ErrorResponse> handleTimeSlotOverlap(TimeSlotOverlapException ex) {
+        var errorResponse = ErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error("Conflict")
+                .message(ex.getMessage())
+                .build();
+
+        log.warn("Time slot overlap: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException ex) {
+        var errorResponse = ErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .error("Not Found")
+                .message(ex.getMessage())
+                .build();
+
+        log.warn("User not found: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
         var errorResponse = ErrorResponse.builder()
                 .timestamp(Instant.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Bad Request")
-                .message("An unexpected error occurred")
+                .message(ex.getMessage())
                 .build();
 
-        log.warn("Bad request occurred", ex);
+        log.warn("Bad request occurred: {}", ex.getMessage());
         return ResponseEntity.badRequest().body(errorResponse);
     }
 

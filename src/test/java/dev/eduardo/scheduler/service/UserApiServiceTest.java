@@ -58,7 +58,7 @@ class UserApiServiceTest {
     }
 
     @Test
-    void shouldFailWhenUserEmailAlreadyExists() {
+    void shouldFail_WhenUserEmailAlreadyExists() {
         var email = "test@example.com";
 
         var createUserRequest = CreateUserRequest.builder()
@@ -80,7 +80,7 @@ class UserApiServiceTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"Europe/Berlim", "Invalid/Timezone"})
-    void shouldFailWhenUserTimezoneDontExist(String timezone) {
+    void shouldFail_WhenUserTimezoneDontExist(String timezone) {
         var email = "test@example.com";
 
         var createUserRequest = CreateUserRequest.builder()

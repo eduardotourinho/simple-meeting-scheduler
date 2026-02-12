@@ -33,11 +33,3 @@ management:
       export:
         otlp:
           endpoint: http://localhost:4318/v1/logs
-
-springdoc:
-  api-docs:
-    enabled: true
-    path: /api-docs
-
-scalar:
-  enabled: true
