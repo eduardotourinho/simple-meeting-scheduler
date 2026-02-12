@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ public class MeetingParticipant {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "meeting_id", nullable = false)
+    @ToString.Exclude
     private Meeting meeting;
     
     @ManyToOne(fetch = FetchType.LAZY)

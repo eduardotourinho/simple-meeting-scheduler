@@ -1,9 +1,6 @@
 package dev.eduardo.scheduler.api.exception;
 
-import dev.eduardo.scheduler.service.exception.DuplicateEmailException;
-import dev.eduardo.scheduler.service.exception.TimeSlotNotFoundException;
-import dev.eduardo.scheduler.service.exception.TimeSlotOverlapException;
-import dev.eduardo.scheduler.service.exception.UserNotFoundException;
+import dev.eduardo.scheduler.service.exception.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -77,6 +74,19 @@ public class GlobalExceptionHandler {
                 .build();
 
         log.warn("Time slot overlap: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    @ExceptionHandler(TimeSlotNotAvailableException.class)
+    public ResponseEntity<ErrorResponse> handleTimeSlotNotAvailable(TimeSlotNotAvailableException ex) {
+        var errorResponse = ErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error("Conflict")
+                .message(ex.getMessage())
+                .build();
+
+        log.warn("Time slot not available: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 

@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,7 +20,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -180,5 +183,274 @@ class TimeSlotControllerIntegrationTest {
         mockMvc.perform(get("/api/time-slots/user/" + UUID.randomUUID()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Not Found"));
+    }
+
+    // Meeting Creation Integration Tests
+
+    @Test
+    void shouldCreateMeeting_WithValidRequest() throws Exception {
+        // Given - Create available time slot
+        var timeSlot = timeSlotRepository.save(TimeSlot.builder()
+                .user(testUser)
+                .startTime(startTime)
+                .endTime(endTime)
+                .status(TimeSlot.SlotStatus.AVAILABLE)
+                .build());
+
+        // Create user for internal participant
+        userRepository.save(User.builder()
+                .name("John Doe")
+                .email("john@example.com")
+                .timezone("UTC")
+                .build());
+
+        var requestBody = """
+                {
+                    "title": "Integration Test Meeting",
+                    "description": "Meeting created via integration test",
+                    "participants": [
+                        {
+                            "name": "John Doe",
+                            "email": "john@example.com"
+                        },
+                        {
+                            "name": "Jane Smith",
+                            "email": "jane@example.com"
+                        }
+                    ]
+                }
+                """;
+
+        // When & Then
+        mockMvc.perform(post("/api/time-slots/" + timeSlot.getId() + "/meetings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.meetingId").exists())
+                .andExpect(jsonPath("$.timeSlotId").value(timeSlot.getId().toString()))
+                .andExpect(jsonPath("$.title").value("Integration Test Meeting"))
+                .andExpect(jsonPath("$.description").value("Meeting created via integration test"))
+                .andExpect(jsonPath("$.organizerId").value(testUser.getId().toString()))
+                .andExpect(jsonPath("$.organizerEmail").value(testUser.getEmail()))
+                .andExpect(jsonPath("$.startTime").value(startTime.toString()))
+                .andExpect(jsonPath("$.endTime").value(endTime.toString()))
+                .andExpect(jsonPath("$.participants").isArray())
+                .andExpect(jsonPath("$.participants.length()").value(2))
+                .andExpect(jsonPath("$.participants[?(@.name == 'John Doe')].email").value("john@example.com"))
+                .andExpect(jsonPath("$.participants[?(@.name == 'John Doe')].type").value("INTERNAL"))
+                .andExpect(jsonPath("$.participants[?(@.name == 'John Doe')].status").value("INVITED"))
+                .andExpect(jsonPath("$.participants[?(@.name == 'Jane Smith')].email").value("jane@example.com"))
+                .andExpect(jsonPath("$.participants[?(@.name == 'Jane Smith')].type").value("EXTERNAL"))
+                .andExpect(jsonPath("$.participants[?(@.name == 'Jane Smith')].status").value("INVITED"));
+
+        // Verify time slot was updated to BOOKED
+        var updatedTimeSlot = timeSlotRepository.findById(timeSlot.getId()).orElseThrow();
+        assertEquals(TimeSlot.SlotStatus.BOOKED, updatedTimeSlot.getStatus());
+    }
+
+    @Test
+    void shouldCreateMeeting_WithExternalParticipantsOnly() throws Exception {
+        // Given - Create available time slot
+        var timeSlot = TimeSlot.builder()
+                .user(testUser)
+                .startTime(startTime)
+                .endTime(endTime)
+                .status(TimeSlot.SlotStatus.AVAILABLE)
+                .build();
+        timeSlot = timeSlotRepository.save(timeSlot);
+
+        var requestBody = """
+                {
+                    "title": "External Only Meeting",
+                    "participants": [
+                        {
+                            "name": "Alice Brown",
+                            "email": "alice@external.com"
+                        }
+                    ]
+                }
+                """;
+
+        // When & Then
+        mockMvc.perform(post("/api/time-slots/" + timeSlot.getId() + "/meetings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("External Only Meeting"))
+                .andExpect(jsonPath("$.participants.length()").value(1))
+                .andExpect(jsonPath("$.participants[0].name").value("Alice Brown"))
+                .andExpect(jsonPath("$.participants[0].email").value("alice@external.com"))
+                .andExpect(jsonPath("$.participants[0].type").value("EXTERNAL"));
+    }
+
+    @Test
+    void shouldCreateMeeting_WithoutDescription() throws Exception {
+        // Given
+        var timeSlot = TimeSlot.builder()
+                .user(testUser)
+                .startTime(startTime)
+                .endTime(endTime)
+                .status(TimeSlot.SlotStatus.AVAILABLE)
+                .build();
+        timeSlot = timeSlotRepository.save(timeSlot);
+
+        var requestBody = """
+                {
+                    "title": "Meeting without description",
+                    "participants": [
+                        {
+                            "name": "John Doe",
+                            "email": "john@example.com"
+                        }
+                    ]
+                }
+                """;
+
+        // When & Then
+        mockMvc.perform(post("/api/time-slots/" + timeSlot.getId() + "/meetings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Meeting without description"))
+                .andExpect(jsonPath("$.description").doesNotExist());
+    }
+
+    @Test
+    void shouldReturnBadRequest_WhenTitleIsMissing() throws Exception {
+        // Given
+        var timeSlot = TimeSlot.builder()
+                .user(testUser)
+                .startTime(startTime)
+                .endTime(endTime)
+                .status(TimeSlot.SlotStatus.AVAILABLE)
+                .build();
+        timeSlot = timeSlotRepository.save(timeSlot);
+
+        var requestBody = """
+                {
+                    "description": "Missing title",
+                    "participants": [
+                        {
+                            "name": "John Doe",
+                            "email": "john@example.com"
+                        }
+                    ]
+                }
+                """;
+
+        // When & Then
+        mockMvc.perform(post("/api/time-slots/" + timeSlot.getId() + "/meetings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnBadRequest_WhenParticipantsAreEmpty() throws Exception {
+        // Given
+        var timeSlot = TimeSlot.builder()
+                .user(testUser)
+                .startTime(startTime)
+                .endTime(endTime)
+                .status(TimeSlot.SlotStatus.AVAILABLE)
+                .build();
+        timeSlot = timeSlotRepository.save(timeSlot);
+
+        var requestBody = """
+                {
+                    "title": "Meeting without participants",
+                    "participants": []
+                }
+                """;
+
+        // When & Then
+        mockMvc.perform(post("/api/time-slots/" + timeSlot.getId() + "/meetings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnBadRequest_WhenParticipantEmailIsInvalid() throws Exception {
+        // Given
+        var timeSlot = TimeSlot.builder()
+                .user(testUser)
+                .startTime(startTime)
+                .endTime(endTime)
+                .status(TimeSlot.SlotStatus.AVAILABLE)
+                .build();
+        timeSlot = timeSlotRepository.save(timeSlot);
+
+        var requestBody = """
+                {
+                    "title": "Meeting with invalid email",
+                    "participants": [
+                        {
+                            "name": "John Doe",
+                            "email": "invalid-email"
+                        }
+                    ]
+                }
+                """;
+
+        // When & Then
+        mockMvc.perform(post("/api/time-slots/" + timeSlot.getId() + "/meetings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturnNotFound_WhenTimeSlotDoesNotExist() throws Exception {
+        // Given
+        var nonExistentTimeSlotId = UUID.randomUUID();
+
+        var requestBody = """
+                {
+                    "title": "Meeting for non-existent slot",
+                    "participants": [
+                        {
+                            "name": "John Doe",
+                            "email": "john@example.com"
+                        }
+                    ]
+                }
+                """;
+
+        // When & Then
+        mockMvc.perform(post("/api/time-slots/" + nonExistentTimeSlotId + "/meetings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturnConflict_WhenTimeSlotIsNotAvailable() throws Exception {
+        // Given - Create busy time slot
+        var busyTimeSlot = TimeSlot.builder()
+                .user(testUser)
+                .startTime(startTime)
+                .endTime(endTime)
+                .status(TimeSlot.SlotStatus.BOOKED)
+                .build();
+        busyTimeSlot = timeSlotRepository.save(busyTimeSlot);
+
+        var requestBody = """
+                {
+                    "title": "Meeting on busy slot",
+                    "participants": [
+                        {
+                            "name": "John Doe",
+                            "email": "john@example.com"
+                        }
+                    ]
+                }
+                """;
+
+        // When & Then
+        mockMvc.perform(post("/api/time-slots/" + busyTimeSlot.getId() + "/meetings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isConflict());
     }
 }
