@@ -6,18 +6,18 @@ spring:
     open-in-view: off
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/scheduler
+    url: jdbc:postgresql://postgres:5432/scheduler
     username: dev
     password: S3cret!
     driver-class-name: org.postgresql.Driver
 
   data:
     redis:
-      host: localhost
+      host: redis
 
   docker:
     compose:
-      enabled: true
+      enabled: false
 
 management:
   tracing:
@@ -27,19 +27,19 @@ management:
   otlp:
     metrics:
       export:
-        url: http://localhost:4318/v1/metrics
+        url: http://grafana:4318/v1/metrics
 
   opentelemetry:
     tracing:
       export:
         otlp:
-          endpoint: http://localhost:4318/v1/traces
+          endpoint: http://grafana:4318/v1/traces
         include-unsampled: true
 
     logging:
       export:
         otlp:
-          endpoint: http://localhost:4318/v1/logs
+          endpoint: http://grafana:4318/v1/logs
 
 springdoc:
   api-docs:
