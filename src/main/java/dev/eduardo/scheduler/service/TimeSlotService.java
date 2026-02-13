@@ -5,6 +5,8 @@ import dev.eduardo.scheduler.domain.repository.TimeSlotRepository;
 import dev.eduardo.scheduler.service.exception.TimeSlotNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,31 +25,43 @@ public class TimeSlotService {
     private final TimeSlotRepository timeSlotRepository;
 
     @Transactional
+    @CacheEvict(value = {"timeSlots", "userTimeSlots"}, allEntries = true)
     public TimeSlot createSlot(TimeSlot timeSlot) {
+        log.debug("Creating time slot: {}", timeSlot.getId());
         return timeSlotRepository.save(timeSlot);
     }
 
     @Transactional
+    @CacheEvict(value = {"timeSlots", "userTimeSlots"}, allEntries = true)
     public TimeSlot updateSlot(TimeSlot timeSlot) {
+        log.debug("Updating time slot: {}", timeSlot.getId());
         return timeSlotRepository.save(timeSlot);
     }
 
+    @CacheEvict(value = {"timeSlots", "userTimeSlots"}, allEntries = true)
     public void removeSlot(TimeSlot timeSlot) {
+        log.debug("Removing time slot: {}", timeSlot.getId());
         timeSlotRepository.delete(timeSlot);
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "timeSlots", key = "#timeSlotId")
     public TimeSlot findById(UUID timeSlotId) {
+        log.debug("Finding time slot by ID: {}", timeSlotId);
         return timeSlotRepository.findById(timeSlotId)
                 .orElseThrow(() -> new TimeSlotNotFoundException("Time slot not found with ID: " + timeSlotId));
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "userTimeSlots", key = "T(java.util.Objects).hash(#userId, #startDate, #endDate, #status, #userTimeZone)")
     public List<TimeSlot> fetchFilteredTimeSlots(UUID userId,
                                                   LocalDate startDate,
                                                   LocalDate endDate,
                                                   TimeSlot.SlotStatus status,
                                                   ZoneId userTimeZone) {
+        log.debug("Fetching filtered time slots for user: {} with filters - startDate: {}, endDate: {}, status: {}", 
+                userId, startDate, endDate, status);
+        
         // Convert LocalDate to Instant for database queries
         Instant startInstant = null;
         Instant endInstant = null;
