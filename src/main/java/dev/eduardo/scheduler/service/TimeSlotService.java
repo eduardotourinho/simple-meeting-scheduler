@@ -24,20 +24,25 @@ public class TimeSlotService {
 
     @Transactional
     public TimeSlot createSlot(TimeSlot timeSlot) {
+        log.debug("Creating time slot: {}", timeSlot.getId());
         return timeSlotRepository.save(timeSlot);
     }
 
     @Transactional
     public TimeSlot updateSlot(TimeSlot timeSlot) {
+        log.debug("Updating time slot: {}", timeSlot.getId());
         return timeSlotRepository.save(timeSlot);
     }
 
+    @Transactional
     public void removeSlot(TimeSlot timeSlot) {
+        log.debug("Removing time slot: {}", timeSlot.getId());
         timeSlotRepository.delete(timeSlot);
     }
 
     @Transactional(readOnly = true)
     public TimeSlot findById(UUID timeSlotId) {
+        log.debug("Finding time slot by ID: {}", timeSlotId);
         return timeSlotRepository.findById(timeSlotId)
                 .orElseThrow(() -> new TimeSlotNotFoundException("Time slot not found with ID: " + timeSlotId));
     }
@@ -48,7 +53,9 @@ public class TimeSlotService {
                                                   LocalDate endDate,
                                                   TimeSlot.SlotStatus status,
                                                   ZoneId userTimeZone) {
-        // Convert LocalDate to Instant for database queries
+        log.debug("Fetching filtered time slots for user: {} with filters - startDate: {}, endDate: {}, status: {}", 
+                userId, startDate, endDate, status);
+
         Instant startInstant = null;
         Instant endInstant = null;
 

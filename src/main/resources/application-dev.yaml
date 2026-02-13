@@ -17,6 +17,8 @@ spring:
 
   docker:
     compose:
+      profiles:
+        active: infrastructure
       enabled: true
 
 management:
