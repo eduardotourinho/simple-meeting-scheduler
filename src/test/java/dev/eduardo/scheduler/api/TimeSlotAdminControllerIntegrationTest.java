@@ -65,7 +65,6 @@ class TimeSlotAdminControllerIntegrationTest {
     void shouldCreateTimeSlots_WhenValidRequest() throws Exception {
         // Given
         var request = CreateTimeSlotRequest.builder()
-                .userId(testUser.getId())
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime)
@@ -77,6 +76,7 @@ class TimeSlotAdminControllerIntegrationTest {
 
         // When & Then
         mockMvc.perform(post("/api/admin/time-slots")
+                        .header("Authorization", "Bearer " + testUser.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -93,7 +93,6 @@ class TimeSlotAdminControllerIntegrationTest {
     void shouldReturnBadRequest_WhenEndTimeBeforeStartTime() throws Exception {
         // Given
         var request = CreateTimeSlotRequest.builder()
-                .userId(testUser.getId())
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(endTime)
@@ -105,6 +104,7 @@ class TimeSlotAdminControllerIntegrationTest {
 
         // When & Then
         mockMvc.perform(post("/api/admin/time-slots")
+                        .header("Authorization", "Bearer " + testUser.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -116,7 +116,6 @@ class TimeSlotAdminControllerIntegrationTest {
     void shouldCreateMultipleTimeSlots_WhenValidRequest() throws Exception {
         // Given
         var request = CreateTimeSlotRequest.builder()
-                .userId(testUser.getId())
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime)
@@ -133,6 +132,7 @@ class TimeSlotAdminControllerIntegrationTest {
 
         // When & Then
         mockMvc.perform(post("/api/admin/time-slots")
+                        .header("Authorization", "Bearer " + testUser.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -147,7 +147,6 @@ class TimeSlotAdminControllerIntegrationTest {
     void shouldReturnConflict_WhenTimeSlotOverlaps() throws Exception {
         // Given - Create first time slot
         var firstRequest = CreateTimeSlotRequest.builder()
-                .userId(testUser.getId())
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime)
@@ -158,13 +157,13 @@ class TimeSlotAdminControllerIntegrationTest {
                 .build();
 
         mockMvc.perform(post("/api/admin/time-slots")
+                        .header("Authorization", "Bearer " + testUser.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(firstRequest)))
                 .andExpect(status().isCreated());
 
         // When - Try to create overlapping time slot
         var overlappingRequest = CreateTimeSlotRequest.builder()
-                .userId(testUser.getId())
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime.minusSeconds(1800)) // 30 minutes before
@@ -176,6 +175,7 @@ class TimeSlotAdminControllerIntegrationTest {
 
         // Then
         mockMvc.perform(post("/api/admin/time-slots")
+                        .header("Authorization", "Bearer " + testUser.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(overlappingRequest)))
                 .andExpect(status().isConflict())
@@ -185,8 +185,8 @@ class TimeSlotAdminControllerIntegrationTest {
     @Test
     void shouldReturnNotFound_WhenUserDoesNotExist() throws Exception {
         // Given
+        var nonExistentUserId = UUID.randomUUID();
         var request = CreateTimeSlotRequest.builder()
-                .userId(UUID.randomUUID()) // Non-existent user
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime)
@@ -198,6 +198,7 @@ class TimeSlotAdminControllerIntegrationTest {
 
         // When & Then
         mockMvc.perform(post("/api/admin/time-slots")
+                        .header("Authorization", "Bearer " + nonExistentUserId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
@@ -208,7 +209,6 @@ class TimeSlotAdminControllerIntegrationTest {
     void shouldGetTimeSlot_WhenExists() throws Exception {
         // Given - Create a time slot first
         var createRequest = CreateTimeSlotRequest.builder()
-                .userId(testUser.getId())
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime)
@@ -219,6 +219,7 @@ class TimeSlotAdminControllerIntegrationTest {
                 .build();
 
         var createResult = mockMvc.perform(post("/api/admin/time-slots")
+                        .header("Authorization", "Bearer " + testUser.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isCreated())
@@ -229,7 +230,8 @@ class TimeSlotAdminControllerIntegrationTest {
         var timeSlotId = createdTimeSlot.createdSlots().getFirst().id();
 
         // When & Then
-        mockMvc.perform(get("/api/admin/time-slots/" + timeSlotId))
+        mockMvc.perform(get("/api/admin/time-slots/" + timeSlotId)
+                        .header("Authorization", "Bearer " + testUser.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(timeSlotId.toString()))
                 .andExpect(jsonPath("$.userId").value(testUser.getId().toString()))
@@ -241,7 +243,8 @@ class TimeSlotAdminControllerIntegrationTest {
     @Test
     void shouldReturnNotFound_WhenGettingNonExistentTimeSlot() throws Exception {
         // When & Then
-        mockMvc.perform(get("/api/admin/time-slots/" + UUID.randomUUID()))
+        mockMvc.perform(get("/api/admin/time-slots/" + UUID.randomUUID())
+                        .header("Authorization", "Bearer " + testUser.getId().toString()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Not Found"));
     }
@@ -250,7 +253,6 @@ class TimeSlotAdminControllerIntegrationTest {
     void shouldUpdateTimeSlot_WhenValidRequest() throws Exception {
         // Given - Create a time slot first
         var createRequest = CreateTimeSlotRequest.builder()
-                .userId(testUser.getId())
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime)
@@ -261,6 +263,7 @@ class TimeSlotAdminControllerIntegrationTest {
                 .build();
 
         var createResult = mockMvc.perform(post("/api/admin/time-slots")
+                        .header("Authorization", "Bearer " + testUser.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isCreated())
@@ -279,6 +282,7 @@ class TimeSlotAdminControllerIntegrationTest {
 
         // When & Then
         mockMvc.perform(put("/api/admin/time-slots/" + timeSlotId)
+                        .header("Authorization", "Bearer " + testUser.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
@@ -292,7 +296,6 @@ class TimeSlotAdminControllerIntegrationTest {
     void shouldDeleteTimeSlot_WhenExists() throws Exception {
         // Given - Create a time slot first
         var createRequest = CreateTimeSlotRequest.builder()
-                .userId(testUser.getId())
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime)
@@ -303,6 +306,7 @@ class TimeSlotAdminControllerIntegrationTest {
                 .build();
 
         var createResult = mockMvc.perform(post("/api/admin/time-slots")
+                        .header("Authorization", "Bearer " + testUser.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isCreated())
@@ -313,11 +317,13 @@ class TimeSlotAdminControllerIntegrationTest {
         var timeSlotId = createdTimeSlot.createdSlots().getFirst().id();
 
         // When & Then
-        mockMvc.perform(delete("/api/admin/time-slots/" + timeSlotId))
+        mockMvc.perform(delete("/api/admin/time-slots/" + timeSlotId)
+                        .header("Authorization", "Bearer " + testUser.getId().toString()))
                 .andExpect(status().isNoContent());
 
         // Verify it's deleted
-        mockMvc.perform(get("/api/admin/time-slots/" + timeSlotId))
+        mockMvc.perform(get("/api/admin/time-slots/" + timeSlotId)
+                        .header("Authorization", "Bearer " + testUser.getId().toString()))
                 .andExpect(status().isNotFound());
     }
 
@@ -325,7 +331,6 @@ class TimeSlotAdminControllerIntegrationTest {
     void shouldReturnBadRequest_WhenDeletingBookedTimeSlot() throws Exception {
         // Given - Create a booked time slot
         var createRequest = CreateTimeSlotRequest.builder()
-                .userId(testUser.getId())
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime)
@@ -336,6 +341,7 @@ class TimeSlotAdminControllerIntegrationTest {
                 .build();
 
         var createResult = mockMvc.perform(post("/api/admin/time-slots")
+                        .header("Authorization", "Bearer " + testUser.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isCreated())
@@ -346,8 +352,30 @@ class TimeSlotAdminControllerIntegrationTest {
         var timeSlotId = createdTimeSlot.createdSlots().getFirst().id();
 
         // When & Then
-        mockMvc.perform(delete("/api/admin/time-slots/" + timeSlotId))
+        mockMvc.perform(delete("/api/admin/time-slots/" + timeSlotId)
+                        .header("Authorization", "Bearer " + testUser.getId().toString()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Bad Request"));
+    }
+
+    @Test
+    void shouldReturnUnauthorized_WhenMissingAuthorizationHeader() throws Exception {
+        // Given
+        var request = CreateTimeSlotRequest.builder()
+                .slots(List.of(
+                        CreateTimeSlotRequest.TimeSlotData.builder()
+                                .startTime(startTime)
+                                .endTime(endTime)
+                                .status(dev.eduardo.scheduler.domain.entities.TimeSlot.SlotStatus.AVAILABLE)
+                                .build()
+                ))
+                .build();
+
+        // When & Then
+        mockMvc.perform(post("/api/admin/time-slots")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Authorization token is required"));
     }
 }

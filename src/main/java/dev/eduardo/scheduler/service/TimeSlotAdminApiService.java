@@ -27,16 +27,20 @@ public class TimeSlotAdminApiService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public TimeSlotResponse getTimeSlot(UUID timeSlotId) {
+    public TimeSlotResponse getTimeSlot(UUID timeSlotId, UUID userId) {
         TimeSlot timeSlot = timeSlotService.findById(timeSlotId);
+
+        if (!timeSlot.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Time slot does not belong to the authenticated user");
+        }
+        
         return TimeSlotResponse.fromEntity(timeSlot);
     }
 
     @Transactional
-    public BulkCreateTimeSlotsResponse createTimeSlots(@Valid CreateTimeSlotRequest request) {
-        // Check if user exists
-        var user = userRepository.findById(request.userId())
-                .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + request.userId()));
+    public BulkCreateTimeSlotsResponse createTimeSlots(@Valid CreateTimeSlotRequest request, UUID userId) {
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
 
         List<TimeSlotResponse> createdSlots = new java.util.ArrayList<>();
         
@@ -73,8 +77,12 @@ public class TimeSlotAdminApiService {
 
 
     @Transactional
-    public TimeSlotResponse updateTimeSlot(UUID timeSlotId, @Valid UpdateTimeSlotRequest request) {
+    public TimeSlotResponse updateTimeSlot(UUID timeSlotId, @Valid UpdateTimeSlotRequest request, UUID userId) {
         var timeSlot = timeSlotService.findById(timeSlotId);
+
+        if (!timeSlot.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Time slot does not belong to the authenticated user");
+        }
 
         // Validate time range
         if (!request.endTime().isAfter(request.startTime())) {
@@ -103,8 +111,12 @@ public class TimeSlotAdminApiService {
     }
 
     @Transactional
-    public void deleteTimeSlot(UUID timeSlotId) {
+    public void deleteTimeSlot(UUID timeSlotId, UUID userId) {
         var timeSlot = timeSlotService.findById(timeSlotId);
+
+        if (!timeSlot.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Time slot does not belong to the authenticated user");
+        }
 
         if (timeSlot.getStatus() == TimeSlot.SlotStatus.BOOKED) {
             log.warn("Attempting to delete booked time slot {} for user {}",

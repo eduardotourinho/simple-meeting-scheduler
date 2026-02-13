@@ -1,10 +1,12 @@
 package dev.eduardo.scheduler.api.dto;
 
 import dev.eduardo.scheduler.domain.entities.TimeSlot;
+import lombok.Builder;
 
 import java.time.Instant;
 import java.util.UUID;
 
+@Builder
 public record TimeSlotResponse(
         UUID id,
         UUID userId,

@@ -47,7 +47,6 @@ class TimeSlotAdminApiServiceTest {
         // Given
         var user = createTestUser();
         var request = CreateTimeSlotRequest.builder()
-                .userId(userId)
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime)
@@ -65,7 +64,7 @@ class TimeSlotAdminApiServiceTest {
                 .thenReturn(timeSlot);
 
         // When
-        var result = adminService.createTimeSlots(request);
+        var result = adminService.createTimeSlots(request, userId);
 
         // Then
         assertNotNull(result);
@@ -88,7 +87,6 @@ class TimeSlotAdminApiServiceTest {
     void shouldThrowUserNotFoundException_WhenUserDoesNotExist() {
         // Given
         var request = CreateTimeSlotRequest.builder()
-                .userId(userId)
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime)
@@ -102,7 +100,7 @@ class TimeSlotAdminApiServiceTest {
 
         // When & Then
         assertThrows(UserNotFoundException.class, 
-                () -> adminService.createTimeSlots(request));
+                () -> adminService.createTimeSlots(request, userId));
 
         verify(userRepositoryMock).findById(userId);
         verify(timeSlotServiceMock, never()).hasOverlappingSlots(any(), any(), any());
@@ -114,7 +112,6 @@ class TimeSlotAdminApiServiceTest {
         // Given
         var user = createTestUser();
         var request = CreateTimeSlotRequest.builder()
-                .userId(userId)
                 .slots(List.of(
                         CreateTimeSlotRequest.TimeSlotData.builder()
                                 .startTime(startTime)
@@ -129,7 +126,7 @@ class TimeSlotAdminApiServiceTest {
 
         // When & Then
         assertThrows(TimeSlotOverlapException.class, 
-                () -> adminService.createTimeSlots(request));
+                () -> adminService.createTimeSlots(request, userId));
 
         verify(userRepositoryMock).findById(userId);
         verify(timeSlotServiceMock).hasOverlappingSlots(userId, startTime, endTime);
@@ -145,7 +142,7 @@ class TimeSlotAdminApiServiceTest {
         when(timeSlotServiceMock.findById(timeSlotId)).thenReturn(timeSlot);
 
         // When
-        TimeSlotResponse result = adminService.getTimeSlot(timeSlotId);
+        TimeSlotResponse result = adminService.getTimeSlot(timeSlotId, userId);
 
         // Then
         assertNotNull(result);
@@ -163,7 +160,7 @@ class TimeSlotAdminApiServiceTest {
 
         // When & Then
         assertThrows(TimeSlotNotFoundException.class, 
-                () -> adminService.getTimeSlot(timeSlotId));
+                () -> adminService.getTimeSlot(timeSlotId, userId));
 
         verify(timeSlotServiceMock).findById(timeSlotId);
     }
@@ -187,7 +184,7 @@ class TimeSlotAdminApiServiceTest {
         when(timeSlotServiceMock.updateSlot(timeSlot)).thenReturn(timeSlot);
 
         // When
-        TimeSlotResponse result = adminService.updateTimeSlot(timeSlotId, request);
+        TimeSlotResponse result = adminService.updateTimeSlot(timeSlotId, request, userId);
 
         // Then
         assertNotNull(result);
@@ -217,7 +214,7 @@ class TimeSlotAdminApiServiceTest {
 
         // When & Then
         assertThrows(TimeSlotOverlapException.class, 
-                () -> adminService.updateTimeSlot(timeSlotId, request));
+                () -> adminService.updateTimeSlot(timeSlotId, request, userId));
 
         verify(timeSlotServiceMock).findById(timeSlotId);
         verify(timeSlotServiceMock).hasOverlappingSlots(userId, startTime, newEndTime, timeSlot);
@@ -233,7 +230,7 @@ class TimeSlotAdminApiServiceTest {
         when(timeSlotServiceMock.findById(timeSlotId)).thenReturn(timeSlot);
 
         // When
-        adminService.deleteTimeSlot(timeSlotId);
+        adminService.deleteTimeSlot(timeSlotId, userId);
 
         // Then
         verify(timeSlotServiceMock).findById(timeSlotId);
@@ -248,7 +245,7 @@ class TimeSlotAdminApiServiceTest {
 
         // When & Then
         assertThrows(TimeSlotNotFoundException.class, 
-                () -> adminService.deleteTimeSlot(timeSlotId));
+                () -> adminService.deleteTimeSlot(timeSlotId, userId));
 
         verify(timeSlotServiceMock).findById(timeSlotId);
         verify(timeSlotServiceMock, never()).removeSlot(any());
@@ -272,7 +269,85 @@ class TimeSlotAdminApiServiceTest {
 
         // When & Then
         assertThrows(IllegalArgumentException.class, 
-                () -> adminService.deleteTimeSlot(timeSlotId));
+                () -> adminService.deleteTimeSlot(timeSlotId, userId));
+
+        verify(timeSlotServiceMock).findById(timeSlotId);
+        verify(timeSlotServiceMock, never()).removeSlot(any());
+    }
+
+    @Test
+    void shouldThrowIllegalArgumentException_WhenGettingTimeSlotOfDifferentUser() {
+        // Given
+        var differentUserId = UUID.randomUUID();
+        var differentUser = User.builder()
+                .id(differentUserId)
+                .name("Different User")
+                .email("different@example.com")
+                .timezone("UTC")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        var timeSlot = createTestTimeSlot(differentUser);
+
+        when(timeSlotServiceMock.findById(timeSlotId)).thenReturn(timeSlot);
+
+        // When & Then
+        assertThrows(IllegalArgumentException.class, 
+                () -> adminService.getTimeSlot(timeSlotId, userId));
+
+        verify(timeSlotServiceMock).findById(timeSlotId);
+    }
+
+    @Test
+    void shouldThrowIllegalArgumentException_WhenUpdatingTimeSlotOfDifferentUser() {
+        // Given
+        var differentUserId = UUID.randomUUID();
+        var differentUser = User.builder()
+                .id(differentUserId)
+                .name("Different User")
+                .email("different@example.com")
+                .timezone("UTC")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        var timeSlot = createTestTimeSlot(differentUser);
+        
+        var request = UpdateTimeSlotRequest.builder()
+                .startTime(startTime)
+                .endTime(endTime)
+                .status(TimeSlot.SlotStatus.BUSY)
+                .build();
+
+        when(timeSlotServiceMock.findById(timeSlotId)).thenReturn(timeSlot);
+
+        // When & Then
+        assertThrows(IllegalArgumentException.class, 
+                () -> adminService.updateTimeSlot(timeSlotId, request, userId));
+
+        verify(timeSlotServiceMock).findById(timeSlotId);
+        verify(timeSlotServiceMock, never()).hasOverlappingSlots(any(), any(), any(), any());
+        verify(timeSlotServiceMock, never()).updateSlot(any());
+    }
+
+    @Test
+    void shouldThrowIllegalArgumentException_WhenDeletingTimeSlotOfDifferentUser() {
+        // Given
+        var differentUserId = UUID.randomUUID();
+        var differentUser = User.builder()
+                .id(differentUserId)
+                .name("Different User")
+                .email("different@example.com")
+                .timezone("UTC")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        var timeSlot = createTestTimeSlot(differentUser);
+
+        when(timeSlotServiceMock.findById(timeSlotId)).thenReturn(timeSlot);
+
+        // When & Then
+        assertThrows(IllegalArgumentException.class, 
+                () -> adminService.deleteTimeSlot(timeSlotId, userId));
 
         verify(timeSlotServiceMock).findById(timeSlotId);
         verify(timeSlotServiceMock, never()).removeSlot(any());

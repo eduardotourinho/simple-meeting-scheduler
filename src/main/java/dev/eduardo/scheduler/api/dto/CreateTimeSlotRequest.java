@@ -8,13 +8,9 @@ import lombok.Builder;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @Builder
 public record CreateTimeSlotRequest(
-        @NotNull(message = "User ID is required")
-        UUID userId,
-        
         @NotEmpty(message = "Slots cannot be empty")
         List<TimeSlotData> slots
 ) {
