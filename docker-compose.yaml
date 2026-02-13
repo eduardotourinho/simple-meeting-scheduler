@@ -2,6 +2,8 @@ services:
 
   grafana:
     image: 'grafana/otel-lgtm:latest'
+    profiles:
+      - infrastructure
     ports:
       - '3000:3000'
       - '4317:4317'
@@ -9,6 +11,8 @@ services:
 
   postgres:
     image: 'postgres:17'
+    profiles:
+      - infrastructure
     environment:
       - 'POSTGRES_DB=scheduler'
       - 'POSTGRES_PASSWORD=S3cret!'
@@ -18,6 +22,8 @@ services:
 
   redis:
     image: 'redis:latest'
+    profiles:
+      - infrastructure
     ports:
       - '6379:6379'
 
@@ -25,6 +31,8 @@ services:
     container_name: meeting-scheduler
     build:
       context: .
+    profiles:
+      - application
     ports:
       - '8080:8080'
     depends_on:

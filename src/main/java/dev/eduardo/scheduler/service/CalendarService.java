@@ -4,10 +4,11 @@ import dev.eduardo.scheduler.api.dto.*;
 import dev.eduardo.scheduler.domain.entities.Meeting;
 import dev.eduardo.scheduler.domain.entities.MeetingParticipant;
 import dev.eduardo.scheduler.domain.entities.TimeSlot;
-import dev.eduardo.scheduler.domain.entities.User;
 import dev.eduardo.scheduler.service.exception.TimeSlotNotAvailableException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,17 +28,21 @@ public class CalendarService {
 
 
     @Transactional(readOnly = true)
+    @Cacheable(
+            value = "userTimeSlotsPageable",
+            key = "T(java.util.Objects).hash(#userId, #startDate, #endDate, #status, #page, #size)"
+    )
     public PageableUserTimeSlotsResponse getUserTimeSlotsPageable(UUID userId, 
                                                                   LocalDate startDate, 
                                                                   LocalDate endDate, 
                                                                   TimeSlot.SlotStatus status,
                                                                   int page,
                                                                   int size) {
-        User user = userService.findById(userId);
+        var user = userService.findById(userId);
 
-        ZoneId userTimeZone = ZoneId.of(user.getTimezone());
+        var userTimeZone = ZoneId.of(user.getTimezone());
 
-        List<TimeSlot> timeSlots = timeSlotService.fetchFilteredTimeSlots(userId, startDate, endDate, status, userTimeZone);
+        var timeSlots = timeSlotService.fetchFilteredTimeSlots(userId, startDate, endDate, status, userTimeZone);
         
         Map<LocalDate, List<TimeSlotSummary>> slotsByDate = timeSlots.stream()
                 .collect(Collectors.groupingBy(
@@ -48,7 +53,7 @@ public class CalendarService {
                         )
                 ));
         
-        List<DateSlots> allDateSlots = slotsByDate.entrySet().stream()
+        var allDateSlots = slotsByDate.entrySet().stream()
                 .map(entry -> new DateSlots(entry.getKey(), entry.getValue()))
                 .sorted(Comparator.comparing(DateSlots::date))
                 .toList();
@@ -58,8 +63,8 @@ public class CalendarService {
         int startIndex = page * size;
         int endIndex = Math.min(startIndex + size, totalElements);
         
-        List<DateSlots> paginatedDateSlots = startIndex < totalElements ? 
-                allDateSlots.subList(startIndex, endIndex) : List.of();
+        List<DateSlots> paginatedDateSlots = startIndex < totalElements ?
+                new ArrayList<>(allDateSlots.subList(startIndex, endIndex)) : new ArrayList<>();
         
         PageableUserTimeSlotsResponse.PageInfo pageInfo = new PageableUserTimeSlotsResponse.PageInfo(
                 page,
@@ -74,6 +79,7 @@ public class CalendarService {
     }
 
     @Transactional
+    @CacheEvict(value = "userTimeSlotsPageable", allEntries = true)
     public CreateMeetingResponse createMeeting(UUID timeSlotId, CreateMeetingRequest request) {
         log.info("Creating meeting for time slot: {} with {} participants", 
                 timeSlotId, request.participants().size());

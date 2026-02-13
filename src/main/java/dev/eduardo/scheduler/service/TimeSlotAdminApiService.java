@@ -11,6 +11,8 @@ import dev.eduardo.scheduler.service.exception.UserNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,7 @@ public class TimeSlotAdminApiService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "adminTimeSlots", key = "T(java.util.Objects).hash(#timeSlotId, #userId)")
     public TimeSlotResponse getTimeSlot(UUID timeSlotId, UUID userId) {
         TimeSlot timeSlot = timeSlotService.findById(timeSlotId);
 
@@ -38,6 +41,7 @@ public class TimeSlotAdminApiService {
     }
 
     @Transactional
+    @CacheEvict(value = {"adminTimeSlots", "userTimeSlotsPageable"}, allEntries = true)
     public BulkCreateTimeSlotsResponse createTimeSlots(@Valid CreateTimeSlotRequest request, UUID userId) {
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
@@ -77,6 +81,7 @@ public class TimeSlotAdminApiService {
 
 
     @Transactional
+    @CacheEvict(value = {"adminTimeSlots", "userTimeSlotsPageable"}, allEntries = true)
     public TimeSlotResponse updateTimeSlot(UUID timeSlotId, @Valid UpdateTimeSlotRequest request, UUID userId) {
         var timeSlot = timeSlotService.findById(timeSlotId);
 
@@ -111,6 +116,7 @@ public class TimeSlotAdminApiService {
     }
 
     @Transactional
+    @CacheEvict(value = {"adminTimeSlots", "userTimeSlotsPageable"}, allEntries = true)
     public void deleteTimeSlot(UUID timeSlotId, UUID userId) {
         var timeSlot = timeSlotService.findById(timeSlotId);
 
