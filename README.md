@@ -28,7 +28,7 @@ This repo includes:
 From the repository root:
 
 ```bash
-docker compose up -d service
+docker compose --profile infrastructure up -d service
 ```
 
 It will start the service and the dependencies (Postgres, Redis and Grafana) automatically:
