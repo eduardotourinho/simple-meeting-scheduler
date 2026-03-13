@@ -1,0 +1,69 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: simple-meeting-scheduler
+  description: Meeting scheduler API for managing time slots and booking meetings, built with Spring Boot, PostgreSQL, Redis, and Grafana observability.
+  annotations:
+    github.com/project-slug: eduardotourinho/simple-meeting-scheduler
+    backstage.io/techdocs-ref: dir:.
+  links:
+    - url: https://github.com/eduardotourinho/simple-meeting-scheduler
+      title: GitHub
+      icon: github
+  tags:
+    - java
+    - spring-boot
+    - postgresql
+    - redis
+    - grafana
+spec:
+  type: service
+  owner: user:default/eduardo-tourinho
+  lifecycle: experimental
+  providesApis:
+    - meeting-scheduler-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: meeting-scheduler-api
+  description: Meeting scheduler API for user management, time slot administration, and meeting booking.
+  tags:
+    - rest
+    - openapi
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: user:default/eduardo-tourinho
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Simple Meeting Scheduler API
+      version: "1.0"
+    paths:
+      /api/users:
+        post:
+          summary: Create a new user
+          operationId: createUser
+      /api/time-slots/user/{userId}:
+        get:
+          summary: Get user time slots
+          operationId: getUserTimeSlots
+      /api/time-slots/{timeSlotId}/meetings:
+        post:
+          summary: Create a meeting by booking a time slot
+          operationId: createMeeting
+      /api/admin/time-slots:
+        post:
+          summary: Create time slots (admin)
+          operationId: createTimeSlots
+      /api/admin/time-slots/{timeSlotId}:
+        get:
+          summary: Get time slot (admin)
+          operationId: getTimeSlot
+        put:
+          summary: Update time slot (admin)
+          operationId: updateTimeSlot
+        delete:
+          summary: Delete time slot (admin)
+          operationId: deleteTimeSlot
