@@ -17,7 +17,7 @@ A REST API for managing time slots and booking meetings between users, built wit
 
 ```bash
 # Start the full stack (API + Postgres + Redis + Grafana)
-docker compose up -d service
+docker compose --profile infrastructure up -d service
 ```
 
 | Service | URL |
