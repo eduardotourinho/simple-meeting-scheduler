@@ -1,4 +1,4 @@
-site_name: Simple Meeting Scheduler
+site_name: Meeting Scheduler
 site_description: >-
   Meeting scheduler API built with Spring Boot, PostgreSQL, Redis, and Grafana
   observability.

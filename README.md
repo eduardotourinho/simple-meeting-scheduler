@@ -1,4 +1,4 @@
-# Simple Meeting Scheduler
+# Meeting Scheduler
 
 A portfolio project demonstrating REST API design with Spring Boot 4, Redis caching, OpenTelemetry observability, and Testcontainers-based integration testing. The service allows users to manage availability time slots and book meetings with other users.
 

@@ -40,7 +40,7 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: simple-meeting-scheduler
+  name: meeting-scheduler
   description: Meeting scheduler API for managing time slots and booking meetings, built with Spring Boot 4, PostgreSQL, Redis, and Grafana observability.
   annotations:
     github.com/project-slug: eduardotourinho/meeting-scheduler
@@ -82,7 +82,7 @@ spec:
   definition: |
     openapi: "3.0.3"
     info:
-      title: Simple Meeting Scheduler API
+      title: Meeting Scheduler API
       description: >
         REST API for managing user availability (time slots) and booking meetings.
         Admin endpoints require an Authorization header with the owner's user ID as the bearer token.

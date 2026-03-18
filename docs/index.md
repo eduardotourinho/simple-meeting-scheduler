@@ -1,4 +1,4 @@
-# Simple Meeting Scheduler
+# Meeting Scheduler
 
 A REST API for managing time slots and booking meetings between users, built with Spring Boot and backed by PostgreSQL, Redis caching, and full Grafana observability.
 

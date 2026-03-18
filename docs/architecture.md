@@ -2,7 +2,7 @@
 
 ## Overview
 
-Simple Meeting Scheduler is a Spring Boot 4 / Java 21 REST API built around a 3-layer architecture.
+Meeting Scheduler is a Spring Boot 4 / Java 21 REST API built around a 3-layer architecture.
 
 ```
 HTTP Request
