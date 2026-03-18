@@ -1,85 +1,71 @@
 # Simple Meeting Scheduler
 
-## About the project
+A portfolio project demonstrating REST API design with Spring Boot 4, Redis caching, OpenTelemetry observability, and Testcontainers-based integration testing. The service allows users to manage availability time slots and book meetings with other users.
 
-This is a simple meeting scheduler API that allows users to create and manage their time slots, and book meetings with other users.
+## Tech Stack
 
-### Tech stack
+| Technology | Version |
+|---|---|
+| Java | 21 |
+| Spring Boot | 4.0.2 |
+| PostgreSQL | 17 |
+| Redis | latest |
+| Flyway | (managed by Spring Boot) |
+| Testcontainers | (managed by Spring Boot) |
+| OpenTelemetry | (via OTEL Java agent) |
+| Grafana LGTM | latest |
 
-- Spring Boot (4.0.2) 
-- Java 21
-- PostgreSQL
-- Redis (caching), 
-- Grafana for observability (Metrics, Tracing and Logging).
+## Architecture
 
-### Project structure
+The service follows a 3-layer architecture:
 
-See [docs/project-structure.md](docs/project-structure.md) for details.
+```
+API Layer (api/)  →  Service Layer (service/)  →  Domain Layer (domain/)
+```
 
-## Running with Docker
+- **API layer** — REST controllers, DTOs, and a global exception handler. Controllers delegate immediately to services without containing business logic.
+- **Service layer** — use-case orchestration, DTO mapping, and custom exceptions (`DuplicateEmailException`, `TimeSlotNotAvailableException`).
+- **Domain layer** — JPA entities (`User`, `TimeSlot`, `Meeting`, `MeetingParticipant`) and Spring Data repositories. Schema is managed by Flyway migrations in `src/main/resources/db/migration/`.
+- **Config layer** — stateless security, Redis cache configuration, OpenTelemetry tracing, `AuthorizationTokenFilter`, and `TraceIdFilter`.
 
-This repo includes:
+### Key Design Decisions
 
-- `docker-compose.yaml` (Postgres + Redis + Grafana OTEL LGTM + the service)
-- `Dockerfile` (builds and runs the Spring Boot app via Gradle)
+- **Authorization** — uses a plain user UUID as the bearer token (`Authorization: Bearer <userId>`). Intentionally simple: it identifies the caller without introducing JWT infrastructure.
+- **Caching** — Redis with Jackson serialization and a 30-minute TTL, configured in `CacheConfig.java`.
+- **Observability** — OpenTelemetry tracing at 10% sampling rate, Prometheus metrics, and a full Grafana LGTM stack available via Docker Compose.
+- **Testing** — integration tests use Testcontainers to spin up real PostgreSQL and Redis instances per test class. Tests live alongside the layer they cover (`api/`, `service/`, `performance/`).
 
-### 1) Start the stack
+See [docs/architecture.md](docs/architecture.md) for a deeper breakdown.
 
-From the repository root:
+## Running
+
+Start the full stack (PostgreSQL, Redis, Grafana LGTM, Spring Boot service) with:
 
 ```bash
 docker compose --profile infrastructure up -d service
 ```
 
-It will start the service and the dependencies (Postgres, Redis and Grafana) automatically:
+| Endpoint | URL |
+|---|---|
+| API | http://localhost:8080 |
+| API docs (Scalar) | http://localhost:8080/scalar |
+| Grafana | http://localhost:3000 |
 
-- **API**: `http://localhost:8080`
-- **Grafana** (Monitoring and Observability): `http://localhost:3000`
-- **PostgreSQL**: `localhost:5432`
-- **Redis**: `localhost:6379`
-
-### 2) Stopping
+Stop everything:
 
 ```bash
 docker compose down
 ```
 
-
-### Usage
-
-1. Create a new user via the `Users` API
-2. Create time slots for the user using the `Time Slot Admin` APIs. You will need to pass an existing `user's id` in the Authorization header.
-3. Fetch the user's time slots via `Time Slots` APIs
-4. Book a time slot for the user via `Time Slots` APIs
-
-### API docs
-
-After the service is started, you can access the OpenAPI docs and client accessing`http://localhost:8080/scalar`.
-
-For more details on the API, see [docs/api-examples.md](docs/api-examples.md).
-
-
-## Database migrations
-
-Flyway runs automatically on startup. Migrations live in:
-
-`src/main/resources/db/migration`
-
-## Tests
-
-Run all tests:
+Run tests:
 
 ```bash
 ./gradlew test
 ```
 
-## Improvements
+## Known Limitations
 
-This is non-comprehensive list of possible improvements and missing features.
-
-- [feature] Add API to get the user's scheduled meetings from the Admin endpoints, with information about the participants.
-- [feature] Ability to cancel a meeting before the scheduled time.
-- [security] The Authorization header should be a JWT token of the authenticated user.
-- [code quality] The project structure is not optimal. It should be refactored to better separate concerns and domains.
-- [code quality] All the mappings are done inside the Services. It should be refactored to better separate concerns and domains.
-- [observability] Improve traceability adding spans related to the business logic. 
+- **UUID bearer token, not JWT** — the `Authorization` header carries a raw user UUID. A real system would use signed JWTs or an external identity provider.
+- **DTO mapping in services** — mapping between DTOs and entities is done inside the service layer rather than in a dedicated mapper layer (e.g. MapStruct).
+- **No meeting cancellation** — once a time slot is booked, there is no endpoint to cancel the resulting meeting.
+- **No admin list-meetings endpoint** — there is no way to list all meetings for a given user from the admin API; only individual time slot lookups are supported.
